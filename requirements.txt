@@ -1,0 +1,5 @@
+# Guardian Antivirus - Requirements
+# Install these dependencies to run the antivirus
+
+customtkinter
+psutil
