@@ -1,4 +1,4 @@
-# Covics Antivirus
+# Guardian Antivirus
 
 A comprehensive antivirus application with real-time protection, malware detection, file scanning, and quarantine management. Built with CustomTkinter for a modern UI with dark/light themes.
 
