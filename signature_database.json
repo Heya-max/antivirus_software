@@ -1,0 +1,11 @@
+{
+    "version": "1.0.0",
+    "last_update": "2026-02-24T16:12:02.065915",
+    "signatures": {
+        "EICAR_TEST": {
+            "pattern": "X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*",
+            "type": "Test Virus",
+            "severity": "Low"
+        },
+        "EICAR_COM": {
+            "pattern": 

@@ -3,6 +3,16 @@ Malware Signature Database
 Contains known malware signatures for detection
 """
 
+import os
+import json
+import datetime
+import urllib.request
+
+# Version info
+DATABASE_VERSION = "1.0.0"
+DATABASE_URL = "https://example.com/antivirus/signatures.json"
+LAST_UPDATE = None
+
 # Known malware signatures (hex patterns commonly found in malware)
 MALWARE_SIGNATURES = {
     # Virus signatures
@@ -138,6 +148,20 @@ SUSPICIOUS_BEHAVIORS = [
     "privilege escalation"
 ]
 
+# Additional threat categories
+THREAT_CATEGORIES = {
+    "Virus": "Malware that replicates itself",
+    "Worm": "Self-replicating malware that spreads across networks",
+    "Trojan": "Malware disguised as legitimate software",
+    "Spyware": "Software that monitors user activity",
+    "Adware": "Advertising-supported software",
+    "Ransomware": "Encrypts files and demands payment",
+    "Rootkit": "Hides malicious software from detection",
+    "Keylogger": "Records keystrokes to steal information",
+    "Botnet": "Network of compromised computers",
+    "Backdoor": "Hidden access to a system"
+}
+
 def get_signature(name):
     """Get a specific signature by name"""
     return MALWARE_SIGNATURES.get(name)
@@ -145,6 +169,10 @@ def get_signature(name):
 def get_all_signatures():
     """Get all malware signatures"""
     return MALWARE_SIGNATURES
+
+def get_signature_count():
+    """Get total number of signatures"""
+    return len(MALWARE_SIGNATURES)
 
 def get_severity_level(severity):
     """Get numeric severity level"""
@@ -167,3 +195,140 @@ def check_filename(filename):
     import os
     name = os.path.basename(filename).lower()
     return name in MALICIOUS_FILENAMES
+
+def add_signature(name, pattern, threat_type, severity):
+    """Add a new malware signature"""
+    global MALWARE_SIGNATURES
+    
+    if isinstance(pattern, str):
+        pattern = pattern.encode('utf-8')
+    
+    MALWARE_SIGNATURES[name] = {
+        'pattern': pattern,
+        'type': threat_type,
+        'severity': severity,
+        'added_date': datetime.datetime.now().isoformat(),
+        'custom': True
+    }
+    return True
+
+def remove_signature(name):
+    """Remove a malware signature"""
+    global MALWARE_SIGNATURES
+    
+    if name in MALWARE_SIGNATURES:
+        del MALWARE_SIGNATURES[name]
+        return True
+    return False
+
+def get_database_info():
+    """Get database information"""
+    global LAST_UPDATE, DATABASE_VERSION
+    
+    return {
+        'version': DATABASE_VERSION,
+        'signature_count': len(MALWARE_SIGNATURES),
+        'last_update': LAST_UPDATE,
+        'suspicious_extensions': len(SUSPICIOUS_EXTENSIONS),
+        'malicious_filenames': len(MALICIOUS_FILENAMES),
+        'threat_categories': len(THREAT_CATEGORIES)
+    }
+
+def update_definitions(force=False):
+    """Update virus definitions from remote source"""
+    global LAST_UPDATE, DATABASE_VERSION, MALWARE_SIGNATURES
+    
+    if not force and LAST_UPDATE:
+        try:
+            last = datetime.datetime.fromisoformat(LAST_UPDATE)
+            if (datetime.datetime.now() - last).days < 1:
+                return {
+                    'success': False,
+                    'message': 'Definitions were updated recently. Use force=True to update anyway.',
+                    'last_update': LAST_UPDATE
+                }
+        except Exception:
+            pass
+    
+    try:
+        try:
+            response = urllib.request.urlopen(DATABASE_URL, timeout=10)
+            data = json.loads(response.read().decode('utf-8'))
+            
+            new_signatures = data.get('signatures', {})
+            for name, sig in new_signatures.items():
+                if name not in MALWARE_SIGNATURES:
+                    MALWARE_SIGNATURES[name] = sig
+            
+            DATABASE_VERSION = data.get('version', DATABASE_VERSION)
+        except Exception:
+            pass
+        
+        LAST_UPDATE = datetime.datetime.now().isoformat()
+        save_definitions()
+        
+        return {
+            'success': True,
+            'message': f'Definitions updated. Total signatures: {len(MALWARE_SIGNATURES)}',
+            'last_update': LAST_UPDATE,
+            'version': DATABASE_VERSION
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'message': f'Update failed: {str(e)}',
+            'last_update': LAST_UPDATE
+        }
+
+def save_definitions():
+    """Save definitions to local file"""
+    try:
+        data = {
+            'version': DATABASE_VERSION,
+            'last_update': LAST_UPDATE,
+            'signatures': MALWARE_SIGNATURES,
+            'suspicious_extensions': SUSPICIOUS_EXTENSIONS,
+            'malicious_filenames': MALICIOUS_FILENAMES
+        }
+        
+        with open('signature_database.json', 'w') as f:
+            json.dump(data, f, indent=4)
+        return True
+    except Exception as e:
+        print(f"Error saving definitions: {e}")
+        return False
+
+def load_definitions():
+    """Load definitions from local file"""
+    global LAST_UPDATE, DATABASE_VERSION, MALWARE_SIGNATURES
+    
+    try:
+        if os.path.exists('signature_database.json'):
+            with open('signature_database.json', 'r') as f:
+                data = json.load(f)
+            
+            DATABASE_VERSION = data.get('version', DATABASE_VERSION)
+            LAST_UPDATE = data.get('last_update')
+            
+            signatures = data.get('signatures', {})
+            for name, sig in signatures.items():
+                MALWARE_SIGNATURES[name] = sig
+            
+            return True
+    except Exception as e:
+        print(f"Error loading definitions: {e}")
+    return False
+
+def reset_to_defaults():
+    """Reset to default signatures"""
+    global MALWARE_SIGNATURES
+    
+    MALWARE_SIGNATURES = {
+        name: sig for name, sig in MALWARE_SIGNATURES.items()
+        if not sig.get('custom', False)
+    }
+    save_definitions()
+    return True
+
+# Initialize
+load_definitions()
